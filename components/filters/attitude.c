@@ -384,10 +384,10 @@ esp_err_t mahoney_filter(
     vec_vsub(w, b, wf);
     skew(wf, T2);
 
-    // R = R * (eye(3) + Rp) \ (eye(3) - Rp)
     mat_madd(T1, T2, T1);
     mat_smult(T1, 0.5f * dt, T1);
 
+    // R = R * (eye(3) + Rp) \ (eye(3) - Rp)
     static float I3f[3][3] = EYE3;
     float T3[3][3] = {0};
     mat_madd(I3f, T1, T2);
@@ -435,17 +435,18 @@ esp_err_t mdm_filter(float R[3][3], float down[3], float a[3], float w[3])
     float w_pred[3] = {0};
     cross(a_norm, v_temp, w_pred);
 
-    // Rp = 0.5 * dt * (skew(w) + kp * skew(w_prd))
+    // Rp = 0.5 * dt * (ki * skew(w) + kp * skew(w_prd))
     vec_smult(w_pred, kp, w_pred);
     skew(w_pred, T1);
 
     float T2[3][3] = {0};
+    vec_smult(w, ki, w);
     skew(w, T2);
 
-    // R = R * (eye(3) + Rp) \ (eye(3) - Rp)
     mat_madd(T1, T2, T1);
     mat_smult(T1, 0.5f * dt, T1);
 
+    // R = R * (eye(3) + Rp) \ (eye(3) - Rp)
     static float I3f[3][3] = EYE3;
     float T3[3][3] = {0};
     mat_madd(I3f, T1, T2);
@@ -473,6 +474,21 @@ esp_err_t get_current_direction(float R[3][3], float dir[3], float result[3])
     float Rt[3][3] = {0};
     mat_trans(R, Rt);
     mat_vmult(Rt, dir, result);
+
+    return ESP_OK;
+}
+
+esp_err_t get_past_direction(float R[3][3], float dir[3], float result[3])
+{
+    if (NULL == R || NULL == dir || NULL == result)
+    {
+        ESP_LOGE(__func__, "Can't get past direction, at least one input "
+                           "parameter is NULL!");
+
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    mat_vmult(R, dir, result);
 
     return ESP_OK;
 }

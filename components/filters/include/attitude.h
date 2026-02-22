@@ -79,6 +79,8 @@ esp_err_t mdm_filter(float R[3][3], float down[3], float a[3], float w[3]);
 /* `get_current_direction` - gets the current direction of a vector in the
    reference frame defined by `R`.
 
+   This is the inverse operation of `get_past_direction`.
+
    For example, if you want to get a down vector in the current   reference
    frame, you would call this function with `R` (which maps the original
    reference frame to the current reference frame), the original down vector,
@@ -95,3 +97,20 @@ esp_err_t mdm_filter(float R[3][3], float down[3], float a[3], float w[3]);
     - `ESP_OK` otherwise.
 */
 esp_err_t get_current_direction(float R[3][3], float dir[3], float result[3]);
+
+/* `get_past_direction` - gets the direction of a vector in the original
+   reference frame, given its direction in the current reference frame.
+
+   This is the inverse operation of `get_current_direction`.
+
+   #### Parameters:
+    - `R` - current attitude estimate, as a rotation matrix,
+    - `dir` - the direction of interest in the current reference frame,
+    - `result` - the direction of interest in the original reference frame.
+
+   #### Returns:
+    - `result` is updated in place with the past direction of interest,
+    - `ESP_ERR_INVALID_ARG` if any input parameter is NULL,
+    - `ESP_OK` otherwise.
+*/
+esp_err_t get_past_direction(float R[3][3], float dir[3], float result[3]);

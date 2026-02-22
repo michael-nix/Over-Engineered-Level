@@ -248,6 +248,8 @@ float filter_sos(SecondOrderSection* sos, SOSData* data, float input);
    This isuseful when you want to initialize your filter with a steady state
    value, so that you don't have to wait for the filter to settle.
 
+   NOTE: set up for low pass filters only.
+
    #### Parameters:
     - `sos_data` - a pointer to an array of `SOSData` containers to be
    initialized,

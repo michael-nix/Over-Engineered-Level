@@ -36,7 +36,7 @@ void app_main(void)
     }
 
     TaskHandle_t data_task_handle = 0;
-    error = xTaskCreate(data_task, "data_task", 2048, &imu_data,
+    error = xTaskCreate(data_task, "data_task", 3072, &imu_data,
         TASK_HIGHEST_PRIORITY, &data_task_handle);
     if (pdPASS != error)
     {

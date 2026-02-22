@@ -200,6 +200,9 @@ esp_err_t initialize_sos_data(
         sos_data[idx].inputs[0] = initial_data[idx];
         sos_data[idx].inputs[1] = initial_data[idx];
         sos_data[idx].inputs[2] = initial_data[idx];
+
+        sos_data[idx].outputs[0] = initial_data[idx];
+        sos_data[idx].outputs[1] = initial_data[idx];
     }
 
     return ESP_OK;

@@ -45,22 +45,9 @@ static inline esp_err_t filter_IMUData(IMUData* new_data, IMUData* old_data,
                 filter_sos(&sos[section], &sos_data[5], new_data[sample].gz);
         }
 
-        IMUData normal = {0};
-        float g02 = filtered[sample].ax * filtered[sample].ax +
-                    filtered[sample].ay * filtered[sample].ay +
-                    filtered[sample].az * filtered[sample].az;
-
-        float adotg = old_data[sample].ax * filtered[sample].ax +
-                      old_data[sample].ay * filtered[sample].ay +
-                      old_data[sample].az * filtered[sample].az;
-
-        normal.ax = adotg / g02 * filtered[sample].ax;
-        normal.ay = adotg / g02 * filtered[sample].ay;
-        normal.az = adotg / g02 * filtered[sample].az;
-
-        average->ax += normal.ax;
-        average->ay += normal.ay;
-        average->az += normal.az;
+        average->ax += filtered[sample].ax;
+        average->ay += filtered[sample].ay;
+        average->az += filtered[sample].az;
 
         average->gx += old_data[sample].gx - filtered[sample].gx;
         average->gy += old_data[sample].gy - filtered[sample].gy;
@@ -130,6 +117,12 @@ void data_task(void* pvParameters)
             down[1] = average.ay;
             down[2] = average.az;
 
+            float dmag = sqrtf(
+                down[0] * down[0] + down[1] * down[1] + down[2] * down[2]);
+            down[0] /= dmag;
+            down[1] /= dmag;
+            down[2] /= dmag;
+
             set_down_vector = false;
         }
 
@@ -142,13 +135,12 @@ void data_task(void* pvParameters)
         float r[3] = {0};
         get_current_direction(R, down, r);
 
-        float intensity = r[0] * r[0] + r[1] * r[1];
+        float intensity = sqrtf(r[0] * r[0] + r[1] * r[1]);
 
         // the LEDs are aligned with -y as its x-axis, and -x as its y-axis.
         float angle = atan2f(-r[0], -r[1]);
 
-        LEDData data = {
-            .angle = angle, .intensity = sqrtf(intensity) / GRAVITY};
+        LEDData data = {.angle = angle, .intensity = intensity};
         send_data_to_led_task(&data);
     }
 }
