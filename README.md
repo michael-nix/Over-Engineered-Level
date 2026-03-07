@@ -35,4 +35,19 @@ Where a hat, $\hat{}$, over a letter indicates an estimate; no hat means measure
 
 These unit vectors, $v_i$, are what will define your frame of reference (e.g. north, east, down).  So when you start, you orient yourself in a known good direction, setting your frame of reference. Then $\hat{R}$ will let you change any measurements you collect back to that original frame of reference via multiplication $\hat{R} \, v_i$.  To take measurements in the original frame of reference (e.g. if you need to know where down is *now*), you just multiply them by the transpose, i.e. $\hat{R}^\mathrm{T} \, v_i$
 
+gyroscope bias is usually......
+
+<p align=center>
+    <img src="./figures/gyroscope_bias.svg" width=75%><br>
+    <i>Figure 1: Gyroscope Bias</i>
+</p>
+
+we're gonna get rid of it somewhere else.......
+
+remove b from these equations; use only acceleration.........
+
+trapezoidal integration of R........
+
+obviously just a complementary filter, combining accel and gyroscope.......
+
 ...
