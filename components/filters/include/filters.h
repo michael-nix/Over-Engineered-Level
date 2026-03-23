@@ -98,7 +98,7 @@ typedef struct sos_data
    initialized with enough capacity to hold that much data, plus at least one
    extra interval.  That is:
 
-    `capacity = ceil(x / nsamples) + 1`
+    `nintervals = ceil(x / nsamples) + 1`
 
    #### Parameters:
      - `nintervals` - the number of intervals in the table,

@@ -132,13 +132,13 @@ void data_task(void* pvParameters)
         mdm_filter(R, down, a, w);
 
         // get original down vector in current reference frame:
-        float r[3] = {0};
-        get_current_direction(R, down, r);
+        float d[3] = {0};
+        get_current_direction(R, down, d);
 
-        float intensity = sqrtf(r[0] * r[0] + r[1] * r[1]);
+        float intensity = sqrtf(d[0] * d[0] + d[1] * d[1]);
 
         // the LEDs are aligned with -y as its x-axis, and -x as its y-axis.
-        float angle = atan2f(-r[0], -r[1]);
+        float angle = atan2f(-d[0], -d[1]);
 
         LEDData data = {.angle = angle, .intensity = intensity};
         send_data_to_led_task(&data);

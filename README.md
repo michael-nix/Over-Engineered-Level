@@ -61,21 +61,45 @@ Do a quick inversion, multiplying from the left:
 
 And there you have it, a way of estimating your change in reference frame using existing measurements.  The nice thing about this approach is that the result is still an orthogonal matrix with a determinant of one, so there's no need to then also approximate something else and then normalize it.  This also, if you squint real hard, looks like something of a rotation.  You can do something similar with the gyroscope bias, $b$, but that requires turning your vectors into matrices, then following the same method.  Instead it's easier to just do the regular explicit Euler method and pray you're sampling fast enough for stability's sake (also it's easy to check).
 
-Somewhere in this repository is a file, probably called `attitude.c/.h`, that gives a sample implementation of this approach in a function most likely called `mahony_filter`.
+However, if you want to start slowing down your sample rate, knowing that you have an unconditionally stable way to integrate values through time is incredibly useful.  You'll still suffer from errors and aliasing, of course, but you'll at least be able to collect data over time, analyze it, and perhaps figure out some compensating controls.
 
-Now, gyroscope bias is typically understood 
+Somewhere in this repository is a file, probably called `attitude.c/.h`, that gives a sample implementation of this approach in a function most likely called `mahoney_filter`.
+
+NOTE: I don't use quaternions, but the Mahoney filter paper does discuss them, and they are recommended as they avoid defects like gimbal lock, and can be more performant.  I find the rotation matrix approach more intuitive to discuss, so that's what I use.  For my use case gimbal lock won't be a problem, nor will performance.
+
+Now, gyroscope bias, $b$, is typically understood as a constant reading of angular velocity when the gyroscope is stationary.  That is, even if the reading should be zero, there is some constant reading--as well as noise, of course.  This is mostly due to mechanical stress, and does happen with accelerometers and magnetometers too; however, those are largely overshadowed by the force of gravity and Earth's magnetic field.  Gyroscopes measure a velocity, so their, "default," values should be zero; i.e. when nothing is moving.  For the MPU-6050 IMU that I'm using, gyroscope readings look like:
 
 <p align=center>
     <img src="./figures/gyroscope_bias.svg" width=75%><br>
     <i>Figure 1: Gyroscope Bias</i>
 </p>
 
-we're gonna get rid of it somewhere else.......
+This isn't terrible, but error will very quickly accumulate so that you can't really tell which way you're facing.  And that's what the Mahoney filter aims to correct: using two known good references (down and north), it should be possible to remove bias from gyroscope measurements so that you can figure out which way you're facing as you move around.
 
-remove b from these equations; use only acceleration.........
+<p align=center>
+    <img src="./figures/mahoney_input_002.svg" width=75%><br>
+    <i>Figure 2: Accelerometer and Gyroscope Input Data: dt = 0.02</i>
+</p>
 
-trapezoidal integration of R........
+<p align=center>
+    <img src="./figures/mahoney_output_002_1_1.svg" width=75%><br>
+    <i>Figure 3: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 1</i>
+</p>
 
-obviously just a complementary filter, combining accel and gyroscope.......
+
+<p align=center>
+    <img src="./figures/mahoney_output_002_10_1.svg" width=75%><br>
+    <i>Figure 4: Mahoney Filter Output: dt = 0.02, kp = 10, ki = 1</i>
+</p>
+
+<p align=center>
+    <img src="./figures/mahoney_output_002_1_10.svg" width=75%><br>
+    <i>Figure 5: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 10</i>
+</p>
+
 
 ...
+
+## Appendix A: README.md
+
+I forgot the actual README.
