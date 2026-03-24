@@ -1,5 +1,5 @@
 function [infig, outfig] = plot_test_data(filename, varargin)
-    % fig = plot_test_data(filename, [mdm, filter, dt, kp, ki]);
+    % fig = plot_test_data(filename, [mdm, dt, kp, ki, fc]);
     
     mdm = false;
     if nargin > 1
@@ -22,6 +22,7 @@ function [infig, outfig] = plot_test_data(filename, varargin)
     end
     
     fc = 1;
+    tofilter = false;
     if nargin > 5
         tofilter = true;
         fc = varargin{5};
