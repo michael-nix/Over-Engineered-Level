@@ -1,5 +1,5 @@
 function [infig, outfig] = plot_test_data(filename, varargin)
-    % fig = plot_test_data(filename, [mdm, dt, kp, ki]);
+    % fig = plot_test_data(filename, [mdm, filter, dt, kp, ki]);
     
     mdm = false;
     if nargin > 1
@@ -21,6 +21,12 @@ function [infig, outfig] = plot_test_data(filename, varargin)
         ki = varargin{4};
     end
     
+    fc = 1;
+    if nargin > 5
+        tofilter = true;
+        fc = varargin{5};
+    end
+    
     % should be six column csv file with accelerometer and gyroscope data, sampled at 50 Hz:
     % ax, ay, az, wx, wy, wz
     data = readtable(filename);
@@ -28,6 +34,12 @@ function [infig, outfig] = plot_test_data(filename, varargin)
     
     a = data(:, 1:3).';
     w = data(:, 4:6).';
+    
+    if tofilter
+        [alpha, beta] = getbutter(fc, dt, 4);
+        a = filter(beta, alpha, a, [], 2);
+        w = filter(beta, alpha, w, [], 2);
+    end
     
     down = a(:, 1);
     down = down / norm(down);
