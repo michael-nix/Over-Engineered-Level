@@ -35,7 +35,7 @@ function [infig, outfig] = plot_test_data(filename, varargin)
     if ~mdm
         d = test_mahoney(a, w, dt, kp, ki);
     else
-        d = test_mdm(a, w);
+        d = test_mdm(a, w, dt, kp, ki);
     end
     
     s = size(d);

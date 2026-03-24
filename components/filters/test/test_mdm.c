@@ -57,6 +57,8 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
             "Input arguments must have the same dimensions!");
     }
 
+    initialize_attitude_filters(dt, kp, ki);
+
     mxDouble* a = mxGetDoubles(prhs[0]);
     mxDouble* w = mxGetDoubles(prhs[1]);
 
