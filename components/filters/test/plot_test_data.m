@@ -52,7 +52,7 @@ function [infig, outfig] = plot_test_data(filename, varargin)
     end
     
     s = size(d);
-    t = (0:s(2)-1) / 50;
+    t = (0:s(2)-1) * dt;
     
     infig = figure();
     subplot(2, 1, 1);
