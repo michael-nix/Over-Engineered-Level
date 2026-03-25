@@ -2,3 +2,5 @@ build/
 .vscode/
 .devcontainer/
 *.csv
+*.fig
+*.mexw64

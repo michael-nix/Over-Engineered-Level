@@ -1,32 +1,37 @@
-function [infig, outfig] = plot_test_data(filename, varargin)
+function [outfig, infig] = plot_test_data(filename, varargin)
     % fig = plot_test_data(filename, [mdm, dt, kp, ki, fc]);
     
+    %% parse input args
+    valid = cellfun(@(input) isscalar(input) && isnumeric(input), varargin);
+    
     mdm = false;
-    if nargin > 1
+    if nargin > 1 && valid(1)
         mdm = varargin{1};
     end
     
     dt = 1;
-    if nargin > 2
+    if nargin > 2 && valid(2)
         dt = varargin{2};
     end
     
     kp = 1;
-    if nargin > 3
+    if nargin > 3 && valid(3)
         kp = varargin{3};
     end
     
     ki = 1;
-    if nargin > 4
+    if nargin > 4 && valid(4)
         ki = varargin{4};
     end
     
-    fc = 1;
+    fc = inf;
     tofilter = false;
-    if nargin > 5
+    if nargin > 5 && valid(5)
         tofilter = true;
         fc = varargin{5};
     end
+    
+    %% read, parse and filter data
     
     % should be six column csv file with accelerometer and gyroscope data, sampled at 50 Hz:
     % ax, ay, az, wx, wy, wz
@@ -51,23 +56,29 @@ function [infig, outfig] = plot_test_data(filename, varargin)
         d = test_mdm(a, w, dt, kp, ki);
     end
     
+    %% plot input data
+    
     s = size(d);
     t = (0:s(2)-1) * dt;
     
-    infig = figure();
-    subplot(2, 1, 1);
-    plot(t, a.', 'LineWidth', 1.5);
-    grid on;
-    legend('a_x', 'a_y', 'a_z');
-    ylabel('acceleration (m / s^2)');
-    title('Accelerometer and Gyroscope Input Data')
+    if nargout == 2
+        infig = figure();
+        subplot(2, 1, 1);
+        plot(t, a.', 'LineWidth', 1.5);
+        grid on;
+        legend('a_x', 'a_y', 'a_z');
+        ylabel('acceleration (m / s^2)');
+        title('Accelerometer and Gyroscope Input Data')
+        
+        subplot(2, 1, 2);
+        plot(t, w.', 'LineWidth', 1.5);
+        grid on;
+        legend('\omega_x', '\omega_y', '\omega_z');
+        xlabel('time (s)');
+        ylabel('angular velocity (rad / s)');
+    end
     
-    subplot(2, 1, 2);
-    plot(t, w.', 'LineWidth', 1.5);
-    grid on;
-    legend('\omega_x', '\omega_y', '\omega_z');
-    xlabel('time (s)');
-    ylabel('angular velocity (rad / s)');
+    %% plot output data
     
     outfig = figure();
     hold on;
@@ -77,5 +88,5 @@ function [infig, outfig] = plot_test_data(filename, varargin)
     legend('down', '', '', '\delta_x', '\delta_y', '\delta_z');
     xlabel('time (s)');
     ylabel('down vector');
-    title(['Mahoney Filter Output Data', newline(), 'k_p = ', num2str(kp), ', k_i = ', num2str(ki)]);
+    title(['Mahoney Filter Output Data', newline(), 'k_p = ', num2str(kp), ', k_i = ', num2str(ki), ', f_c = ', num2str(fc)]);
 end
