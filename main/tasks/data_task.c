@@ -49,9 +49,9 @@ static inline esp_err_t filter_IMUData(IMUData* new_data, IMUData* old_data,
         average->ay += filtered[sample].ay;
         average->az += filtered[sample].az;
 
-        average->gx += old_data[sample].gx - filtered[sample].gx;
-        average->gy += old_data[sample].gy - filtered[sample].gy;
-        average->gz += old_data[sample].gz - filtered[sample].gz;
+        average->gx += filtered[sample].gx;
+        average->gy += filtered[sample].gy;
+        average->gz += filtered[sample].gz;
     }
 
     average->ax *= dn;
@@ -75,14 +75,15 @@ void data_task(void* pvParameters)
         FILTER_CUTOFF_FREQUENCY_HZ, IMU_SAMPLE_RATE_HZ, FILTER_ORDER, sos);
 
     bool set_sos_data = true;
-    SOSData sos_data[IMU_NUM_SENSORS] = {0};
+    SOSData sos_data[IMU_NUM_SENSORS] = {0.0};
 
     initialize_attitude_filters(
         1.0f / IMU_SAMPLE_RATE_HZ * IMU_SAMPLES_PER_PERIOD, 1.0f, 1.0f);
     float R[3][3] = EYE3;
+    float b[3] = {0.0};
 
     bool set_down_vector = true;
-    float down[3] = {0};
+    float down[3] = {0.0};
 
     while (true)
     {
@@ -129,7 +130,7 @@ void data_task(void* pvParameters)
         // estimate current attitude:
         float a[3] = {average.ax, average.ay, average.az};
         float w[3] = {average.gx, average.gy, average.gz};
-        mdm_filter(R, down, a, w);
+        mahoney_filter(R, b, down, a, w);
 
         // get original down vector in current reference frame:
         float d[3] = {0};

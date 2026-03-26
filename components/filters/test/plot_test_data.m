@@ -2,6 +2,11 @@ function [outfig, infig] = plot_test_data(filename, varargin)
     % fig = plot_test_data(filename, [mdm, dt, kp, ki, fc]);
     
     %% parse input args
+    
+    if (~ischar(filename) && ~isstring(filename)) || ~isvector(filename)
+        error([newline(), '    InvalidInput: filename must be valid string or char!']);
+    end
+    
     valid = cellfun(@(input) isscalar(input) && isnumeric(input), varargin);
     
     mdm = false;
