@@ -1,5 +1,5 @@
 # Over Engineering a Level
-Why use a bubble when you can use calculus incorrectly?
+Or, the unreasonable effectiveness of low pass filters?
 
 **Michael Nix**, Toronto, Canada, 2026
 
@@ -65,11 +65,11 @@ In this final formulation for estimtaing $\mathbf{R}$, if you look at the defini
 
 These are the parameters we're left with having to think about: how fast we want to update our bias estimate, and, how much we want to trust our accelerometer measurement vs. gyroscope measurement when updating our rotation matrix.  It is more complicated than that, but that's an ok starting heuristic.  Thinking this way can also give us some insight into how we can further reduce error with minimal futzin' about.
 
-You can do something similar with the gyroscope bias, $b$, but that requires turning your vectors into matrices, then following the same method.  Instead it's easier to just do the regular explicit Euler method and pray you're sampling fast enough for stability's sake (also it's easy to check for stability).  I suppose you could also do a piecewise implicit integration on the bias vector, which could be a good compromise.
+You can do something similar with the gyroscope bias, $b$, but that requires turning your vectors into matrices, then following the same method.  Instead it's easier to just do the regular explicit Euler method and pray you're sampling fast enough for stability's sake (also it's easy to check for stability).  I suppose you could also do a piecewise implicit integration on the bias vector, which could be a good compromise.  
 
-However, if you want to start slowing down your sample rate, knowing that you have an unconditionally stable way to integrate values through time is incredibly useful.  You'll still suffer from errors and aliasing, of course, but you'll at least be able to collect data over time, analyze it, and perhaps figure out some compensating controls.
+However, if you want to start slowing down your sample rate, knowing that you have an unconditionally stable way to integrate values through time is incredibly useful.  You'll still suffer from errors and aliasing, of course, but you'll at least be able to collect data over time, analyze it, and perhaps figure out some compensating controls.  Interestingly, since it's possible to have an unstable bias vector whose only use is in an unconditionally stable system, we don't see what we would expect with an unstable system, i.e. exponential growth in error; however, you do see some wacky extreme oscillations, which is fun.
 
-Somewhere in this repository is a file, probably called `attitude.c/.h`, that gives a sample implementation of this approach in a function most likely called `mahoney_filter`.
+Somewhere in this repository is a file, probably called `attitude.c/.h`, that gives a sample implementation of this approach in a function most likely called `mahoney_filter`.  Also in the filters component, there is a test folder that contains a MATLAB mex function that can be used to demonostrate how this works.
 
 NOTE: I don't use quaternions, but the Mahoney filter paper does discuss them, and they are recommended as they avoid defects like gimbal lock, and can be more performant.  I find the rotation matrix approach more intuitive to discuss, so that's what I use.  For my use case gimbal lock won't be a problem, nor will performance.
 
@@ -88,27 +88,39 @@ This isn't terrible, but error will very quickly accumulate so that you can't re
 </p>
 
 <p align=center>
-    <img src="./figures/mahoney_output_002_1_1.svg" width=75%><br>
-    <i>Figure 3: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 1</i>
+    <img src="./figures/mahoney_output_002_0_0.svg" width=75%><br>
+    <i>Figure 3: Mahoney Filter Output: dt = 0.02, kp = 0, ki = 0</i>
 </p>
 
+<p align=center>
+    <img src="./figures/mahoney_output_002_1_0.svg" width=75%><br>
+    <i>Figure 4: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 0</i>
+</p>
 
 <p align=center>
-    <img src="./figures/mahoney_output_002_10_1.svg" width=75%><br>
-    <i>Figure 4: Mahoney Filter Output: dt = 0.02, kp = 10, ki = 1</i>
+    <img src="./figures/mahoney_output_002_0_1.svg" width=75%><br>
+    <i>Figure 5: Mahoney Filter Output: dt = 0.02, kp = 0, ki = 1</i>
+</p>
+
+<p align=center>
+    <img src="./figures/mahoney_output_002_1_1.svg" width=75%><br>
+    <i>Figure 6: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 1</i>
 </p>
 
 <p align=center>
     <img src="./figures/mahoney_output_002_1_10.svg" width=75%><br>
-    <i>Figure 5: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 10</i>
+    <i>Figure 7: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 10</i>
 </p>
 
 <p align=center>
-    <img src="./figures/mahoney_output_002_10_10.svg" width=75%><br>
-    <i>Figure 5: Mahoney Filter Output: dt = 0.02, kp = 10, ki = 10</i>
+    <img src="./figures/mahoney_output_002_10_1.svg" width=75%><br>
+    <i>Figure 8: Mahoney Filter Output: dt = 0.02, kp = 10, ki = 1</i>
 </p>
 
-
+<p align=center>
+    <img src="./figures/mahoney_output_002_10_1_2.svg" width=75%><br>
+    <i>Figure 8: Mahoney Filter Output: dt = 0.02, kp = 10, ki = 1, fc = 2</i>
+</p>
 
 ...
 
