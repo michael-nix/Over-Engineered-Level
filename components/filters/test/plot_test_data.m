@@ -1,13 +1,15 @@
 function [outfig, infig] = plot_test_data(filename, varargin)
-    % fig = plot_test_data(filename, [mdm, dt, kp, ki, fc]);
+    % [outfig, infig] = plot_test_data(filename, [mdm, dt, kp, ki, fc]);
     
     %% parse input args
     
     if (~ischar(filename) && ~isstring(filename)) || ~isvector(filename)
-        error([newline(), '    InvalidInput: filename must be valid string or char!']);
+        error([newline(), ...
+            '    InvalidInput: filename must be valid string or char!']);
     end
     
-    valid = cellfun(@(input) isscalar(input) && isnumeric(input), varargin);
+    valid = cellfun(@(input) isscalar(input) && (isnumeric(input) || ...
+        islogical(input)), varargin);
     
     mdm = false;
     if nargin > 1 && valid(1)
@@ -38,7 +40,8 @@ function [outfig, infig] = plot_test_data(filename, varargin)
     
     %% read, parse and filter data
     
-    % should be six column csv file with accelerometer and gyroscope data, sampled at 50 Hz:
+    % should be six column csv file with accelerometer and gyroscope data,
+    % sampled at 50 Hz:
     % ax, ay, az, wx, wy, wz
     data = readtable(filename);
     data = table2array(data);
@@ -56,8 +59,10 @@ function [outfig, infig] = plot_test_data(filename, varargin)
     down = down / norm(down);
     
     if ~mdm
+        title_name = 'Mahoney Filter Output Data';
         d = test_mahoney(a, w, dt, kp, ki);
     else
+        title_name = 'MDM Filter Output Data';
         d = test_mdm(a, w, dt, kp, ki);
     end
     
@@ -93,5 +98,6 @@ function [outfig, infig] = plot_test_data(filename, varargin)
     legend('down', '', '', '\delta_x', '\delta_y', '\delta_z');
     xlabel('time (s)');
     ylabel('down vector');
-    title(['Mahoney Filter Output Data', newline(), 'k_p = ', num2str(kp), ', k_i = ', num2str(ki), ', f_c = ', num2str(fc)]);
+    title([title_name, newline(), 'k_p = ', num2str(kp), ', k_i = ', ...
+        num2str(ki), ', f_c = ', num2str(fc)]);
 end

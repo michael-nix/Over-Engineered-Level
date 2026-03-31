@@ -118,8 +118,13 @@ This isn't terrible, but error will very quickly accumulate so that you can't re
 </p>
 
 <p align=center>
+    <img src="./figures/mahoney_input_002_filtered_2.svg" width=75%><br>
+    <i>Figure 9: Filtered Accelerometer and Gyroscope Input Data: dt = 0.02, fc = 2</i>
+</p>
+
+<p align=center>
     <img src="./figures/mahoney_output_002_10_1_2.svg" width=75%><br>
-    <i>Figure 8: Mahoney Filter Output: dt = 0.02, kp = 10, ki = 1, fc = 2</i>
+    <i>Figure 10: Mahoney Filter Output: dt = 0.02, kp = 10, ki = 1, fc = 2</i>
 </p>
 
 ...
