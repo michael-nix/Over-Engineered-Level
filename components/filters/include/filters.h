@@ -87,7 +87,7 @@ typedef struct sos_data
 /* `initialize_interval_buffer` - sets default values and initializes memory for
    an `IntervalBuffer`.
 
-   Inintializes an `IntervalBuffer` given the number of samples in an interval
+   Initializes an `IntervalBuffer` given the number of samples in an interval
    of data, whose total capacity will be given by `nintervals * nsamples`.  The
    `data` initialized will be continuous along each interval; i.e. incrementing
    a single `data` index is the same as incrementing a sample index while

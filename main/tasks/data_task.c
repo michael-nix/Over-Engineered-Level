@@ -75,7 +75,7 @@ void data_task(void* pvParameters)
         FILTER_CUTOFF_FREQUENCY_HZ, IMU_SAMPLE_RATE_HZ, FILTER_ORDER, sos);
 
     bool set_sos_data = true;
-    SOSData sos_data[IMU_NUM_SENSORS] = {0.0};
+    SOSData sos_data[IMU_NUM_SENSORS] = {0};
 
     initialize_attitude_filters(
         1.0f / IMU_SAMPLE_RATE_HZ * IMU_SAMPLES_PER_PERIOD, 1.0f, 1.0f);

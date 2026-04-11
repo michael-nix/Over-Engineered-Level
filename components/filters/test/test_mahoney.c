@@ -1,11 +1,13 @@
+// compiled with: mex -R2018a test_mahoney.c
+
 #include "test_attitude.c"
 
-// d = test_attitude(a, w, dt, kp, ki);
+// d = test_mahoney(a, w, dt, kp, ki);
 void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
 {
     if (nrhs < 2)
     {
-        mexErrMsgIdAndTxt("test_attitude:InvalidInput",
+        mexErrMsgIdAndTxt("test_mahoney:InvalidInput",
             "At least two input arguments are required!");
     }
 
@@ -29,7 +31,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
 
     if (nlhs > 1)
     {
-        mexErrMsgIdAndTxt("test_attitude:InvalidOutput",
+        mexErrMsgIdAndTxt("test_mahoney:InvalidOutput",
             "Only one output argument is allowed!");
     }
 
@@ -37,7 +39,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
     mwSize ndims_w = mxGetNumberOfDimensions(prhs[1]);
     if ((ndims_a != 2) || (ndims_w != 2))
     {
-        mexErrMsgIdAndTxt("test_attitude:InvalidInput",
+        mexErrMsgIdAndTxt("test_mahoney:InvalidInput",
             "Input arguments must be 2D matrices!");
     }
 
@@ -48,12 +50,12 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
     if ((nrows_a != 3) || (nrows_w != 3))
     {
         mexErrMsgIdAndTxt(
-            "test_attitude:InvalidInput", "Input arguments must have 3 rows!");
+            "test_mahoney:InvalidInput", "Input arguments must have 3 rows!");
     }
 
     if ((ncols_a != ncols_w) || (nrows_a != nrows_w))
     {
-        mexErrMsgIdAndTxt("test_attitude:InvalidInput",
+        mexErrMsgIdAndTxt("test_mahoney:InvalidInput",
             "Input arguments must have the same dimensions!");
     }
 

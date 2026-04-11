@@ -61,7 +61,7 @@ Do a quick inversion, multiplying from the left:
 
 And there you have it, a way of estimating your change in reference frame using existing measurements.  The nice thing about this approach is that the result is still an orthogonal matrix with a determinant of one, so there's no need to then also approximate something else and then normalize it.  This also, if you squint real hard, looks like something of a rotation.  
 
-In this final formulation for estimtaing $\mathbf{R}$, if you look at the definition of $\mathbf{R}_p$, you can kinda see that this is a complementary filter that combines gyroscope measurements (with bias compensation) with an estimate of rotation that comes from accelerometer measurements (since I don't have a magnetometer).  That means that your rotation matrix will always be updated based on a fraction of acceleration measurements determined by $k_P / (1 + k_p)$, and a fraction of bias compensated gyroscope measurements determined by $1 / (1 + k_p)$.  Looking at how the bias is estimated from its rate of change, you can also tell that $k_I$ determines how quickly bias estimates are updated based on that same acceleration measurement (i.e. the comparison between original down in the current reference frame and the current measurement of down).
+In this final formulation for estimating $\mathbf{R}$, if you look at the definition of $\mathbf{R}_p$, you can kinda see that this is a complementary filter that combines gyroscope measurements (with bias compensation) with an estimate of rotation that comes from accelerometer measurements (since I don't have a magnetometer).  That means that your rotation matrix will always be updated based on a fraction of acceleration measurements determined by $k_P / (1 + k_P)$, and a fraction of bias compensated gyroscope measurements determined by $1 / (1 + k_P)$.  Looking at how the bias is estimated from its rate of change, you can also tell that $k_I$ determines how quickly bias estimates are updated based on that same acceleration measurement (i.e. the comparison between original down in the current reference frame and the current measurement of down).
 
 These are the parameters we're left with having to think about: how fast we want to update our bias estimate, and, how much we want to trust our accelerometer measurement vs. gyroscope measurement when updating our rotation matrix.  It is more complicated than that, but that's an ok starting heuristic.  Thinking this way can also give us some insight into how we can further reduce error with minimal futzin' about.
 
@@ -69,7 +69,7 @@ You can do something similar with the gyroscope bias, $b$, but that requires tur
 
 However, if you want to start slowing down your sample rate, knowing that you have an unconditionally stable way to integrate values through time is incredibly useful.  You'll still suffer from errors and aliasing, of course, but you'll at least be able to collect data over time, analyze it, and perhaps figure out some compensating controls.  Interestingly, since it's possible to have an unstable bias vector whose only use is in an unconditionally stable system, we don't see what we would expect with an unstable system, i.e. exponential growth in error; however, you do see some wacky extreme oscillations, which is fun.
 
-Somewhere in this repository is a file, probably called `attitude.c/.h`, that gives a sample implementation of this approach in a function most likely called `mahoney_filter`.  Also in the filters component, there is a test folder that contains a MATLAB mex function that can be used to demonostrate how this works.
+Somewhere in this repository is a file, probably called `attitude.c/.h`, that gives a sample implementation of this approach in a function most likely called `mahoney_filter`.  Also in the filters component, there is a test folder that contains a MATLAB mex function that can be used to demonstrate how this works.
 
 NOTE: I don't use quaternions, but the Mahoney filter paper does discuss them, and they are recommended as they avoid defects like gimbal lock, and can be more performant.  I find the rotation matrix approach more intuitive to discuss, so that's what I use.  For my use case gimbal lock won't be a problem, nor will performance.
 
@@ -82,49 +82,69 @@ Now, gyroscope bias, $b$, is typically understood as a constant reading of angul
 
 This isn't terrible, but error will very quickly accumulate so that you can't really tell which way you're facing.  And that's what the Mahoney filter aims to correct: using two known good references (down and north), it should be possible to remove bias from gyroscope measurements so that you can figure out which way you're facing as you move around.
 
+To begin to get a sense of how bias can affect measurements, I've captured some sample data that we can take a look at.  It's nothing fancy, I just slowly moved the IMU around on my desk, holding it still for five seconds before pivoting.  First it was flat on my desk, then I picked it up so that the y-axis was about thirty or so degrees off the desk, put it back down; did the same for the x-axis; and then rotated ninety degrees around the z-axis and back.  Here's what that looks like for both accelerometer and gyroscope:
+
 <p align=center>
     <img src="./figures/mahoney_input_002.svg" width=75%><br>
     <i>Figure 2: Accelerometer and Gyroscope Input Data: dt = 0.02</i>
 </p>
 
+The bias is still noticeable in the gyroscope measurements which is fun.  But of course you can still see the obvious: lifting up the y-axis requires a rotation about the x-axis, lifting up the x-axis requires rotating around the y.  Then, if you spin it quickly about the z-axis while it's flat, it's obvious what the acceleration looks like: an oscillation along the y-axis (for speeding up and then slowing down (near the very end of the data, around 32 seconds)).
+
+Now, we can try to estimate a rotation matrix using this data by feeding it into our Mahoney filter with no bias compensation and without using accelerometer readings.  To do that, we'll first grab a down vector, and then after every Mahoney filter update we'll take our current reading of down (just the accelerometer reading since gravity is so strong), rotate back to the original reference frame, and compare it with our original down vector.  If the two down vectors match up, we can say that our rotation matrix is pretty good, and that we're on the right track.  In the following figures, we'll label `down` as our original vector, just as three black dashed lines, while the current down vector rotated back to the original reference frame will be labeled $\delta_{x,y,z}$.
+
+To use the Mahoney filter without bias correction, we can just set $k_I$ to zero, and to only use gyroscope measurements we can just set $k_P$ to zero.  This gives us:
+
 <p align=center>
     <img src="./figures/mahoney_output_002_0_0.svg" width=75%><br>
-    <i>Figure 3: Mahoney Filter Output: dt = 0.02, kp = 0, ki = 0</i>
+    <i>Figure 3: Mahoney Filter Output: dt = 0.02 s, kp = 0, ki = 0</i>
 </p>
+
+Which is exactly what we'd expect when we continuously integrate a constant rate of change in rotation, albeit with little blips when things are legitimately rotated.  To then see what effect using accelerometer measurements have, we can simply turn on $k_P$.  If we set it to one, this becomes a complementary filter where we combine gyroscope and accelerometer measurements equally, then integrate to get our estimated rotation matrix.  
+
+As a reminder, when we say, "use accelerometer measurements," what we mean is we estimate a rotation based on the cross product of the initial down vector brought into the current reference frame with the current down vector (which we assume is the current accelerometer reading).  This will give us a vector that's orthogonal to both, with a magnitude proportional to the angle between the two: some kind of a rotation.
+
+Turning this on gives us:
 
 <p align=center>
     <img src="./figures/mahoney_output_002_1_0.svg" width=75%><br>
-    <i>Figure 4: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 0</i>
+    <i>Figure 4: Mahoney Filter Output: dt = 0.02 s, kp = 1, ki = 0</i>
 </p>
+
+This gives us our first hint that something is working.  While not close to perfect, we can see that after a few seconds, our rotation matrix seems to settle down.  That is, except for when the actual rotations occur.  That's to be expected, as that's where most of the noise is, during accelerations.  Even when I tried extra hard to do it smoothly, everything still jiggles a bit when I move it.  However, things still don't settle when acceleration stops, nor do they ever converge back to the normal down.  With these parameters and no bias correction, there will always be at least a constant error in our rotation matrix.
+
+Now, what if we do the opposite: turn off acceleration measurements, and turn on bias correction (which... uses acceleration measurements)?  This means turning $k_P$ down to zero, and $k_I$ up to one:
 
 <p align=center>
     <img src="./figures/mahoney_output_002_0_1.svg" width=75%><br>
-    <i>Figure 5: Mahoney Filter Output: dt = 0.02, kp = 0, ki = 1</i>
+    <i>Figure 5: Mahoney Filter Output: dt = 0.02 s, kp = 0, ki = 1</i>
 </p>
+
+
 
 <p align=center>
     <img src="./figures/mahoney_output_002_1_1.svg" width=75%><br>
-    <i>Figure 6: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 1</i>
+    <i>Figure 6: Mahoney Filter Output: dt = 0.02 s, kp = 1, ki = 1</i>
 </p>
 
 <p align=center>
     <img src="./figures/mahoney_output_002_1_10.svg" width=75%><br>
-    <i>Figure 7: Mahoney Filter Output: dt = 0.02, kp = 1, ki = 10</i>
+    <i>Figure 7: Mahoney Filter Output: dt = 0.02 s, kp = 1, ki = 10</i>
 </p>
 
 <p align=center>
     <img src="./figures/mahoney_output_002_10_1.svg" width=75%><br>
-    <i>Figure 8: Mahoney Filter Output: dt = 0.02, kp = 10, ki = 1</i>
+    <i>Figure 8: Mahoney Filter Output: dt = 0.02 s, kp = 10, ki = 1</i>
 </p>
 
 <p align=center>
     <img src="./figures/mahoney_input_002_filtered_2.svg" width=75%><br>
-    <i>Figure 9: Filtered Accelerometer and Gyroscope Input Data: dt = 0.02, fc = 2</i>
+    <i>Figure 9: Filtered Accelerometer and Gyroscope Input Data: dt = 0.02 s, fc = 2</i>
 </p>
 
 <p align=center>
     <img src="./figures/mahoney_output_002_10_1_2.svg" width=75%><br>
-    <i>Figure 10: Mahoney Filter Output: dt = 0.02, kp = 10, ki = 1, fc = 2</i>
+    <i>Figure 10: Mahoney Filter Output: dt = 0.02 s, kp = 10, ki = 1, fc = 2</i>
 </p>
 
 ...
