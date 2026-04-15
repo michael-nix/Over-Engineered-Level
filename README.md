@@ -120,17 +120,25 @@ Now, what if we do the opposite: turn off acceleration measurements, and turn on
     <i>Figure 5: Mahoney Filter Output: dt = 0.02 s, kp = 0, ki = 1</i>
 </p>
 
+For our simplified Mahoney filter (using only the accelerometer readings), the bias calculation is meant to oppose any error determined by the difference in the original down vector when, "compared," to the current down vector.  This means that--even for a stationary device--as bias accumulates error in the rotation matrix, the error between original down and current down rises.  Adjusting the $k_I$ parameter thus adjusts how fast we try to compensate, which results in cool sinusoids that oscillate faster and faster as it rises.  This also means that if you want your filter to respond faster to errors determined by acceleration readings (instead of just matching them via the complementary filter itself), you can crank this parameter up as well.  However, this can also lead to runaway oscillations if raised too high; or, if there is too high an error given by comparison of down vectors.
 
+Now, turning both the bias correction and complementary filter on at the same time gives us more or less what we're looking for:
 
 <p align=center>
     <img src="./figures/mahoney_output_002_1_1.svg" width=75%><br>
     <i>Figure 6: Mahoney Filter Output: dt = 0.02 s, kp = 1, ki = 1</i>
 </p>
 
+This is pretty good!  It takes a few seconds, but the bias does get corrected, and then regardless of orientation, does eventually converge when acceleration is zero.  The only issue is that when there are accelerations, the noise created by the movement can cause some large fluctuations in our estimated down vector.  That is, since this filter assumes that acceleration readings are mostly down (because gravity is so strong compared regular acceleration), any deviation from that assumption shows up directly in our estimate.
+
+There might be a few different ways to improve this.  We can try to ignore acceleration measurements when they deviate too far from what we'd expect gravity to do (i.e. turn $k_P$ down), but that could result in some wacky oscillations that would make our estimate less useful.  So first, we'll just try adjust our parameters.  First, if we increase $k_I$:
+
 <p align=center>
     <img src="./figures/mahoney_output_002_1_10.svg" width=75%><br>
     <i>Figure 7: Mahoney Filter Output: dt = 0.02 s, kp = 1, ki = 10</i>
 </p>
+
+
 
 <p align=center>
     <img src="./figures/mahoney_output_002_10_1.svg" width=75%><br>
