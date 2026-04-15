@@ -138,22 +138,38 @@ There might be a few different ways to improve this.  We can try to ignore accel
     <i>Figure 7: Mahoney Filter Output: dt = 0.02 s, kp = 1, ki = 10</i>
 </p>
 
-
+All this seems to really do is help us respond faster to changes in orientation; however, if we respond too fast, we overshoot, and oscillate.  Which is what you see near the end of the above when there are larger, less smooth spikes in the accelration data.  Of course, responding faster also means that the frequency of oscillation is much higher.  Which makes it harder to converge in those moments when there is no acceleration (and thus rotation).  If we had magnetometer measurements that we could also use, this could oppose the oscillations due to bias correction using acceleration (because down and north are orthogonal), but I don't have a magnetometer handy to demonstrate that.  Ok, so that's a bust, but what if we keep $k_I$ at one, and crank $k_P$ up to ten:
 
 <p align=center>
     <img src="./figures/mahoney_output_002_10_1.svg" width=75%><br>
     <i>Figure 8: Mahoney Filter Output: dt = 0.02 s, kp = 10, ki = 1</i>
 </p>
 
+This is much better.  It still takes a few seconds to converge, but the initial deviation is never that bad.  You might think, that with $k_P$ cranked up so high relative to gyroscope measurements (which are hardcoded to  gain constant of one), well what do we even need gyroscope measurements for at this point?  Well, that's what makes things converge at all.  That is, when the gyroscope is measuring zero, it's what causes crazy accelerations to not throw things into complete disarray.  I don't have a good graph of this right now as I don't have MATLAB on this computer, but perhaps I'll put it in an appendix when I have a minute.
+
+The only issue that remains are the noisy wiggles when the motion of the device is noisy and wiggly.  Thankfully there's a simple solution for this, a low pass filter.  You might have noticed an $f_c$ parameter mentioned in the title for each one of these graphs, that is the cut-off frequency for a fourth order Butterworth filter, implemented somewhere in this repo (i.e. the `filters` component) in `filters.h/c`.  Infinity for cut-off frequency means... there is no low pass filter.  Butterworth filters are great because they have flat gain in the passband, and reasonably flat group delay--at least for lower order filters that aren't too slow.
+
+If we apply such a filter, with a cut-off frequency of 2 Hz, to our input data things are much cleaner:
+
 <p align=center>
     <img src="./figures/mahoney_input_002_filtered_2.svg" width=75%><br>
     <i>Figure 9: Filtered Accelerometer and Gyroscope Input Data: dt = 0.02 s, fc = 2</i>
 </p>
 
+The nice thing about a cut-off frequency of 2 Hz is that it mostly eliminates the extreme acceleration that we saw at the end of the sequence of original input data due to me bumping the device.  The bad thing about it is the average group delay in the passband is about a quarter of a second.  If you look at the acceleration, "pulses," you can see that there is an offset between the filtered data and the original; that's the group delay.  Remember: phase delay is dispersion, group delay is offset.  A quarter second group delay might not be great for real-time applications, but if you're using it to navigate on a human-esque scale, it's ok.  If you want a faster response time, i.e. lower group delay, a 5 Hz cut-off frequency would give you a group delay of a few milliseconds.  That's typically how smartphone gravity filters work: low pass filter acceleration data, then normalize it so that its magnitude matches approx. 9.80665 m / s / s
+
+If we then use this data to feed our filter, with the above pre-determined parameters for $k_I$ and $k_P$, we get:
+
 <p align=center>
     <img src="./figures/mahoney_output_002_10_1_2.svg" width=75%><br>
     <i>Figure 10: Mahoney Filter Output: dt = 0.02 s, kp = 10, ki = 1, fc = 2</i>
 </p>
+
+And that's much better.  With the caveat that this is... an incredibly small set of data, and an incredibly unrealistic test.  In some previous work, I noticed that genuine human movement (not just arm waving) takes place around and below 0.5 Hz; knowledge that could help us tune our level so that it's more realistic.  Though filtering at that cut-off with otherwise the same filter increases group delay to over three quarters of a second, on average.  So you really do need to understand your system and how it moves in order to get the best results out of these things.  You can always guess at the mechanics of things, jam it into an adaptive filter like a Kalman filter and (if properly implemented) it will converge (eventually), but I dunno.
+
+So where's the level?
+
+
 
 ...
 
