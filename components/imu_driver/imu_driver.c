@@ -6,12 +6,12 @@
 
 #define NCONFIG 9
 static const uint8_t mpu6050config[NCONFIG][2] = {
-    {PWR_MGMT_1_REG, CLKSEL_VAL}, // Set clock to gyro-x
+    {PWR_MGMT_1_REG, CLKSEL_BIT}, // Set clock to gyro-x
     {SMPRT_DIV_REG,
-        SMPLRT_DIV_VAL},        // Set sample rate to 1 kHz if DLPF is enabled
-    {CONFIG_REG, DLPF_CFG_VAL}, // Enable highest bandwidth DLPF
+        SMPLRT_DIV_BIT},        // Set sample rate to 1 kHz if DLPF is enabled
+    {CONFIG_REG, DLPF_CFG_BIT}, // Enable highest bandwidth DLPF
     {GYRO_CONFIG_REG, FS_SEL_BIT}, // Set gyro range +/- 500 deg/s
-    {ACCEL_CONFIG_REG, ACCEL_HPF_VAL | AFS_SEL_BIT}, // Set accel range +/- 2g
+    {ACCEL_CONFIG_REG, ACCEL_HPF_BIT | AFS_SEL_BIT}, // Set accel range +/- 2g
     {FIFO_EN_REG, XG_FIFO_EN_BIT | YG_FIFO_EN_BIT | ZG_FIFO_EN_BIT |
                       ACCEL_FIFO_EN_BIT}, // Enable FIFO for gyro and accel
     {INT_PIN_CFG_REG, 0x00},              // Configure interrupt pin

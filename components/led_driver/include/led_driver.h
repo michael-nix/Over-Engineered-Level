@@ -1,5 +1,7 @@
 #pragma once
 
+#define WS2812_DIN_PIN GPIO_NUM_2
+
 typedef struct pixel
 {
     uint8_t g;

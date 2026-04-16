@@ -102,6 +102,8 @@ To use the Mahoney filter without bias correction, we can just set $k_I$ to zero
 
 Which is exactly what we'd expect when we continuously integrate a constant rate of change in rotation, albeit with little blips when things are legitimately rotated.  To then see what effect using accelerometer measurements have, we can simply turn on $k_P$.  If we set it to one, this becomes a complementary filter where we combine gyroscope and accelerometer measurements equally, then integrate to get our estimated rotation matrix.  
 
+> **NOTE:** to generate the following figures with data and outputs, etc., I used the MATLAB script `plot_test_data.m` in `components/filters/test/` using the provided `test_data.csv` that was pulled from print statements added to the running device, monitored via the ESP-IDF extension for VS Code.  To generate the underlying mex function `test_mahoney`, you have to compile it (if you have MATLAB installed) with `mex -R2018a test_mahoney.c`.
+
 As a reminder, when we say, "use accelerometer measurements," what we mean is we estimate a rotation based on the cross product of the initial down vector brought into the current reference frame with the current down vector (which we assume is the current accelerometer reading).  This will give us a vector that's orthogonal to both, with a magnitude proportional to the angle between the two: some kind of a rotation.
 
 Turning this on gives us:
@@ -138,7 +140,7 @@ There might be a few different ways to improve this.  We can try to ignore accel
     <i>Figure 7: Mahoney Filter Output: dt = 0.02 s, kp = 1, ki = 10</i>
 </p>
 
-All this seems to really do is help us respond faster to changes in orientation; however, if we respond too fast, we overshoot, and oscillate.  Which is what you see near the end of the above when there are larger, less smooth spikes in the accelration data.  Of course, responding faster also means that the frequency of oscillation is much higher.  Which makes it harder to converge in those moments when there is no acceleration (and thus rotation).  If we had magnetometer measurements that we could also use, this could oppose the oscillations due to bias correction using acceleration (because down and north are orthogonal), but I don't have a magnetometer handy to demonstrate that.  Ok, so that's a bust, but what if we keep $k_I$ at one, and crank $k_P$ up to ten:
+All this seems to really do is help us respond faster to changes in orientation; however, if we respond too fast, we overshoot, and oscillate.  Which is what you see near the end of the above when there are larger, less smooth spikes in the acceleration data.  Of course, responding faster also means that the frequency of oscillation is much higher.  Which makes it harder to converge in those moments when there is no acceleration (and thus rotation).  If we had magnetometer measurements that we could also use, this could oppose the oscillations due to bias correction using acceleration (because down and north are orthogonal), but I don't have a magnetometer handy to demonstrate that.  Ok, so that's a bust, but what if we keep $k_I$ at one, and crank $k_P$ up to ten:
 
 <p align=center>
     <img src="./figures/mahoney_output_002_10_1.svg" width=75%><br>
@@ -169,10 +171,50 @@ And that's much better.  With the caveat that this is... an incredibly small set
 
 So where's the level?
 
+As of February 2026, this is a pretty terrible level.  The moment you turn this thing on, it takes an accelerometer reading and then uses this as the original reference frame's down.  It then lights up some LEDs green if any further readings can be translated back to that original reference frame and match that down vector.  The LEDs are red if they're too far off, and yellow somewhere in between.  Red and yellow LEDs will line up in a little arrow pointing in the direction you need to tilt the device to get to level.  Which is fine, but this means that in order to work, you first have to find a level surface to put the thing on, hah.
 
+Of course, I could update this to calibrate a down vector the moment it becomes level (i.e. when acceleration is pointing along the z-axis (which is physically down in our case), and has the correct magnitude); or like, add a button so that you can manually calibrate it.  And I might do that later when I have some time.  Unfortunately you need a direct, more or less continuous, series of measurements from the calibrated vector to your current measurements in order to keep track of the rotation matrix that translates from your current reference frame to your original.
 
-...
+Could you use this for navigation?  Probably, it might not be as accurate, but because translations between references frames do eventually converge, you could wait for down vectors to line up in the original reference frame, take measurements and then translate them back.  This will allow you to keep track of movement in a way that makes sense so that you can orient yourself.  Doing it continuously--especially if you want to accumulate acceleration--to track displacement would still give you issues; the same issues you always have unless you have an external measurement you can also rely upon.  However, if you wanted to try you'd have to, in its current form, align it correctly with down and north, then turn it on.  That way any measurements you take can be brought back into a reference frame that should be aligned with north and down; though you won't have a north reference to compare it to.
 
 ## Appendix A: README.md
 
 I forgot the actual README.
+
+This was built using a starter kit from Freenove so that I could build out a library of low level drivers for various types of peripherals using various types of interfaces and communication protocols.  And, as I said above, play around with some math stuff.
+
+This firmware was written in VS Code using the ESP-IDF Extension, with ESP-IDF v5.5.2, and tries to conform to those standards.  That is, if you clone this repo, and open it in VS Code with the ESP-IDF Extension installed, with v5.5.2 of the IDF installed, you should just be able to hit the build button and it'll work.
+
+The hardware consists of:
+- ESP32-WROVER microcontroller with GPIO extension board,
+- MPU-6050 6-axis IMU,
+- WS2812 RGB LED module.
+
+All put together, things look like:
+
+<p align=center>
+    <img src="figures/device_picture.jpeg" width=75%>
+    <i>Figure A1: The Level in Question</i>
+</p>
+
+The IMU is controlled using an I2C connection from the ESP32 to the MPU6050, and the LEDs are controlled using the ESP's RMT as a pulse width modulator.  Datasheets can be found in the relevant component's `/docs/` folder.  The pin layout is:
+
+| Device        | Line | GPIO Pin |
+|---------------|------|----------|
+| **MPU-6050**  | SDA  | IO13     |
+|               | SCL  | IO14     |
+|               | INT  | IO15     |
+| **WS2812**    | DIN  | IO2      |
+
+The IMU also has two 10 $\mathrm{k\Omega}$ pull-up resistors on the SCL / SDA lines.
+
+The general flow of the program is:
+- The main task (`main/main.c`) initializes the underlying peripherals (IMU, LED), sets up shared data structures, monitors task memory, and starts other tasks:
+  - The three other tasks are the IMU task, data task, and LED task,
+- The IMU task (`main/tasks/imu_task.c`) sets a periodic timer, and when it expires it copies data from the IMU buffer to a local buffer--which is also shared with the data task--then signals the data task that there is new data ready,
+- The data task (`main/tasks/data_task.c`) is where all of the math happens; once the IMU task updates the shared buffer, it filters the new data, updates an estimate on the rotation matrix, and tells the LED task in which direction with which colour to point the LEDs,
+- The LED task (`main/tasks/led_task.c`) simply receives data from the data task and updates the colours of the LEDs.
+
+Pins and general settings for each peripheral can be found in its respective driver header, e.g. `led_driver.h`, or `imu_driver.h`, or `filters.h` to change the parameters for the underlying filters (low pass, Mahoney) and their data buffers.
+
+> **NOTE:** The MPU-6050 I have has a FIFO buffer of only 512 bytes, instead of 1024 bytes like it says in the datasheet, which is weird.  Also, the reason I set it to sample at 1 kHz and average samples after filtering in order to get down to 50 Hz was just 'cause I wanted to see how fast I could get things to work.

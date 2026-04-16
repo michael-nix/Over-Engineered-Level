@@ -26,10 +26,12 @@ Register Map and Descriptions.pdf`.
 // enabled.
 #define SMPRT_DIV_REG  0x19
 #define SMPLRT_DIV_VAL 0
+#define SMPLRT_DIV_BIT SMPLRT_DIV_VAL << 0
 
 // Register 26 - Configuration
 #define CONFIG_REG   0x1A
 #define DLPF_CFG_VAL 1
+#define DLPF_CFG_BIT DLPF_CFG_VAL << 0
 
 // Register 27 - Gyroscope Configuration
 #define GYRO_CONFIG_REG 0x1B
@@ -39,6 +41,7 @@ Register Map and Descriptions.pdf`.
 // Register 28 - Accelerometer Configuration
 #define ACCEL_CONFIG_REG 0x1C
 #define ACCEL_HPF_VAL    0
+#define ACCEL_HPF_BIT    ACCEL_HPF_VAL << 0
 #define AFS_SEL_VAL      0
 #define AFS_SEL_BIT      AFS_SEL_VAL << 3
 
@@ -81,6 +84,7 @@ Register Map and Descriptions.pdf`.
 #define CYCLE_BIT        BIT5
 #define TEMP_DIS_BIT     BIT3
 #define CLKSEL_VAL       1
+#define CLKSEL_BIT       CLKSEL_VAL << 0
 
 // Register 114 and 115 - FIFO Count Registers
 #define FIFO_COUNT_H_REG 0x72

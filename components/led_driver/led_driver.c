@@ -26,7 +26,7 @@ esp_err_t led_initialize()
 {
     rmt_tx_channel_config_t led_tx_channel_config = {
         .clk_src = RMT_CLK_SRC_DEFAULT,
-        .gpio_num = GPIO_NUM_2,
+        .gpio_num = WS2812_DIN_PIN,
         .mem_block_symbols = 64,
         .resolution_hz = (uint32_t)RMT_WS2812_TICK_RATE_HZ,
         .trans_queue_depth = 4,
