@@ -193,7 +193,7 @@ The hardware consists of:
 All put together, things look like:
 
 <p align=center>
-    <img src="figures/device_picture.jpeg" width=75%>
+    <img src="figures/device_picture.jpeg" width=75%><br>
     <i>Figure A1: The Level in Question</i>
 </p>
 
@@ -218,3 +218,14 @@ The general flow of the program is:
 Pins and general settings for each peripheral can be found in its respective driver header, e.g. `led_driver.h`, or `imu_driver.h`, or `filters.h` to change the parameters for the underlying filters (low pass, Mahoney) and their data buffers.
 
 > **NOTE:** The MPU-6050 I have has a FIFO buffer of only 512 bytes, instead of 1024 bytes like it says in the datasheet, which is weird.  Also, the reason I set it to sample at 1 kHz and average samples after filtering in order to get down to 50 Hz was just 'cause I wanted to see how fast I could get things to work.
+
+## Appendix B: Rotation Matrix w/o Gyroscope
+
+I remembered to generate this now that I'm back in front of MATLAB; please compare to Figure 10 above:
+
+<p align="center">
+    <img src="figures/mahoney_output_no_gyro.svg" width=75%><br>
+    <i>Figure B1: Mahoney Filter Output with No Gyroscope Input</i>
+</p>
+
+So, if it wasn't obvious before, I hope it is now, that even though our filter, "prioritizes," accelerometer-based rotation measurements ten times more than gyroscope measurements, the gyroscope measurements are still absolutely necessary.
