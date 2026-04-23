@@ -13,7 +13,7 @@ Which brings us back to humans walking and planes flying.  A while ago I was doi
 
 So can we adapt normal tools to this kind of situation?
 
-Given the comments above, the most obvious normal tool would be the Mahoney filter.  Specifically the, "explicit complementary filter with bias correction," that doesn't use quaternions.  This gives us a way of combining acceleration measurements, magnetometer measurements, and gyroscope measurements to estimate the rate of change of the attitude of a system with respect to some initial reference frame while compensating for errors in gyroscope measurements.
+Given the comments above, the most obvious normal tool would be the Mahoney filter.  Specifically the, "explicit complementary filter with bias correction," that doesn't use quaternions.  This gives us a way of combining acceleration measurements, magnetometer measurements, and gyroscope measurements to estimate the rate of change of the attitude of a system with respect to some initial reference frame while compensating for errors in gyroscope measurements.  And you can keep it all in 3D so that the linear algebra is way more palatable.
 
 Here's what the math looks like:
 
@@ -29,13 +29,13 @@ Here's what the math looks like:
 \mathbf{\omega}_\mathrm{mes} = \sum_{i=1}^n k_i \, \mathbf{v}_i \times \hat{\mathbf{v}}_i
 ```
 
-Where a hat, $\hat{}$, over a letter indicates an estimate; no hat means measurement; each $v_i$ is a unit vector, and they're all orthogonal to one another; b is the bias in the gyroscope, whose rate of change is estimated by the sum of error in unit vector estimates and current measurements (given by their cross product; a rotation); $\Omega^y$ are the gyroscope measurements; a skew, $_\times$, turns a rotation vector into a skew-symmetric rotation matrix (so you can add, multiply, and invert them); $\mathbf{R}$ is a rotation matrix that translates current measurements into your original frame of reference; and all the $k\mathrm{s}$ are gain constants (integral, proportional, whatever).
+Where a hat, $\hat{}$, over a letter indicates an estimate; no hat means measurement; each $\mathbf{v}_i$ is a unit vector, and they're all orthogonal to one another; $\mathbf{b}$ is the bias in the gyroscope, whose rate of change is estimated by the sum of error in unit vector estimates and current measurements (given by their cross product; a rotation); $\Omega^y$ are the gyroscope measurements; a skew, $_\times$, turns a rotation vector into a skew-symmetric rotation matrix (so you can add, multiply, and invert them); $\mathbf{R}$ is a rotation matrix that translates current measurements into your original frame of reference; and all the $k\mathrm{s}$ are gain constants (integral, proportional, whatever).
 
 *Theoretically* the gain constants for $\omega_\mathrm{mes}$ are determined by the existence of eigenvalues of a matrix whose columns are given by your choice of unit vectors, and it only works if you have two or more unit vectors (which we don't), so we'll set those all to one for now.
 
-These unit vectors, $v_i$, are what will define your frame of reference (e.g. north, east, down).  So when you start, you orient yourself in a known good direction, setting your frame of reference. Then $\hat{R}$ will let you change any measurements you collect back to that original frame of reference via multiplication $\hat{R} \, v_i$.  To take measurements in the original frame of reference (e.g. if you need to know where down is *now*), you just multiply them by the transpose, i.e. $\hat{R}^\mathrm{T} \, v_i$.
+These unit vectors, $\mathbf{v}_i$, are what will define your frame of reference (e.g. north, east, down).  So when you start, you orient yourself in a known good direction, setting your frame of reference by setting the initial conditions for your unit vectors, $\mathbf{v}_i^0$.  The current estimates of your unit vectors, $\hat{\mathbf{v}}_i$ are these initial vectors rotated into the current reference frame by multiplying by the transpose of your rotation matrix estimate; that is, $\hat{\mathbf{v}}_i = \hat{\mathbf{R}}^\mathrm{T} \, \mathbf{v}_i^0$.  This of course means that $\hat{\mathbf{R}}$ will let you change any measurements you collect back to that original frame of reference via multiplication, e.g. $\hat{\mathbf{R}} \, \mathbf{v}_i$.  To take measurements in the original frame of reference (e.g. if you need to know where down is *now*), you just multiply them by the transpose, e.g. $\hat{\mathbf{R}}^\mathrm{T} \, \mathbf{v}_i$.
 
-In order to make this work inside of our computers, we will need to discretize it.  We'll start with the hard part first, and then leave the rest up as an exercise for the reader.  In order to maintain stability as sample rates are reduced, I prefer to use implicit methods for dealing with differential equations, in particular trapezoidal integration or the Crank-Nicolson method.  This means turning our differential into a simple forward finite difference, but the rate of change is equal to the average of the starting point and the ending point.  Similar to the area under a trapezoid when approximating integrals.  This looks like:
+In order to make this work inside of our computers, we will need to discretize it.  We'll start with the hard part first, and then leave the rest up as an exercise for the reader.  In order to maintain stability as sample rates are reduced, I prefer to use implicit methods for dealing with differential equations, in particular trapezoidal integration, or the Crank-Nicolson method.  This means turning our differential into a simple forward finite difference, but the rate of change is equal to the average of the starting point and the ending point.  Similar to the area under a trapezoid when approximating integrals.  This looks like:
 
 ```math
 \frac{\hat{\mathbf{R}}^{n+1} - \hat{\mathbf{R}}^{n}}{\Delta t} = \frac{1}{2} \left ( \hat{\mathbf{R}}^{n+1} + \hat{\mathbf{R}}^n \right ) \left ( (\mathbf{\Omega}^y - \hat{\mathbf{b}})_\times + k_P \, (\mathbf{\omega}_\mathrm{mes})_\times \right )
@@ -65,7 +65,7 @@ In this final formulation for estimating $\mathbf{R}$, if you look at the defini
 
 These are the parameters we're left with having to think about: how fast we want to update our bias estimate, and, how much we want to trust our accelerometer measurement vs. gyroscope measurement when updating our rotation matrix.  It is more complicated than that, but that's an ok starting heuristic.  Thinking this way can also give us some insight into how we can further reduce error with minimal futzin' about.
 
-You can do something similar with the gyroscope bias, $b$, but that requires turning your vectors into matrices, then following the same method.  Instead it's easier to just do the regular explicit Euler method and pray you're sampling fast enough for stability's sake (also it's easy to check for stability).  I suppose you could also do a piecewise implicit integration on the bias vector, which could be a good compromise.  
+You can do something similar with the gyroscope bias, $\mathbf{b}$, but that requires turning your vectors into matrices, then following the same method.  Instead it's easier to just do the regular explicit Euler method and pray you're sampling fast enough for stability's sake (also it's easy to check for stability).  I suppose you could also do a piecewise implicit integration on the bias vector, which could be a good compromise.  
 
 However, if you want to start slowing down your sample rate, knowing that you have an unconditionally stable way to integrate values through time is incredibly useful.  You'll still suffer from errors and aliasing, of course, but you'll at least be able to collect data over time, analyze it, and perhaps figure out some compensating controls.  Interestingly, since it's possible to have an unstable bias vector whose only use is in an unconditionally stable system, we don't see what we would expect with an unstable system, i.e. exponential growth in error; however, you do see some wacky extreme oscillations, which is fun.
 
@@ -73,7 +73,7 @@ Somewhere in this repository is a file, probably called `attitude.c/.h`, that gi
 
 > **NOTE:** I don't use quaternions, but the Mahoney filter paper does discuss them, and they are recommended as they avoid defects like gimbal lock, and can be more performant.  I find the rotation matrix approach more intuitive to discuss, so that's what I use.  For my use case gimbal lock won't be a problem, nor will performance.
 
-Now, gyroscope bias, $b$, is typically understood as a constant reading of angular velocity when the gyroscope is stationary.  That is, even if the reading should be zero, there is some constant reading--as well as noise, of course.  This is mostly due to mechanical stress, and does happen with accelerometers and magnetometers too; however, those are largely overshadowed by the force of gravity and Earth's magnetic field.  Gyroscopes measure a velocity, so their, "default," values should be zero; i.e. when nothing is moving.  For the MPU-6050 IMU that I'm using, gyroscope readings look like:
+Now, gyroscope bias, $\mathbf{b}$, is typically understood as a constant reading of angular velocity when the gyroscope is stationary.  That is, even if the reading should be zero, there is some constant reading--as well as noise, of course.  This is mostly due to mechanical stress, and does happen with accelerometers and magnetometers too; however, those are largely overshadowed by the force of gravity and Earth's magnetic field.  Gyroscopes measure a velocity, so their, "default," values should be zero; i.e. when nothing is moving.  For the MPU-6050 IMU that I'm using, stationary gyroscope readings look like:
 
 <p align=center>
     <img src="./figures/gyroscope_bias.svg" width=75%><br>
@@ -93,6 +93,8 @@ The bias is still noticeable in the gyroscope measurements which is fun.  But of
 
 Now, we can try to estimate a rotation matrix using this data by feeding it into our Mahoney filter with no bias compensation and without using accelerometer readings.  To do that, we'll first grab a down vector, and then after every Mahoney filter update we'll take our current reading of down (just the accelerometer reading since gravity is so strong), rotate back to the original reference frame, and compare it with our original down vector.  If the two down vectors match up, we can say that our rotation matrix is pretty good, and that we're on the right track.  In the following figures, we'll label `down` as our original vector, just as three black dashed lines, while the current down vector rotated back to the original reference frame will be labeled $\delta_{x,y,z}$.
 
+> **NOTE:** to generate the following figures with data and outputs, etc., I used the MATLAB script `plot_test_data.m` in `components/filters/test/` using the provided `test_data.csv` that was pulled from print statements added to the running device, monitored via the ESP-IDF extension for VS Code.  To generate the underlying mex function `test_mahoney`, you have to compile it (if you have MATLAB installed) with `mex -R2018a test_mahoney.c`.
+
 To use the Mahoney filter without bias correction, we can just set $k_I$ to zero, and to only use gyroscope measurements we can just set $k_P$ to zero.  This gives us:
 
 <p align=center>
@@ -101,8 +103,6 @@ To use the Mahoney filter without bias correction, we can just set $k_I$ to zero
 </p>
 
 Which is exactly what we'd expect when we continuously integrate a constant rate of change in rotation, albeit with little blips when things are legitimately rotated.  To then see what effect using accelerometer measurements have, we can simply turn on $k_P$.  If we set it to one, this becomes a complementary filter where we combine gyroscope and accelerometer measurements equally, then integrate to get our estimated rotation matrix.  
-
-> **NOTE:** to generate the following figures with data and outputs, etc., I used the MATLAB script `plot_test_data.m` in `components/filters/test/` using the provided `test_data.csv` that was pulled from print statements added to the running device, monitored via the ESP-IDF extension for VS Code.  To generate the underlying mex function `test_mahoney`, you have to compile it (if you have MATLAB installed) with `mex -R2018a test_mahoney.c`.
 
 As a reminder, when we say, "use accelerometer measurements," what we mean is we estimate a rotation based on the cross product of the initial down vector brought into the current reference frame with the current down vector (which we assume is the current accelerometer reading).  This will give us a vector that's orthogonal to both, with a magnitude proportional to the angle between the two: some kind of a rotation.
 
@@ -214,6 +214,35 @@ The general flow of the program is:
 - The IMU task (`main/tasks/imu_task.c`) sets a periodic timer, and when it expires it copies data from the IMU buffer to a local buffer--which is also shared with the data task--then signals the data task that there is new data ready,
 - The data task (`main/tasks/data_task.c`) is where all of the math happens; once the IMU task updates the shared buffer, it filters the new data, updates an estimate on the rotation matrix, and tells the LED task in which direction with which colour to point the LEDs,
 - The LED task (`main/tasks/led_task.c`) simply receives data from the data task and updates the colours of the LEDs.
+
+A sequence diagram for this would look something like:
+
+```mermaid
+sequenceDiagram
+    participant m as Main Task
+    
+    create participant i as IMU Task
+    m ->> i: Initialize IMU Task
+    
+    create participant d as Data task
+    m ->> d: Initialize Data Task
+
+    create participant l as LED Task
+    m ->> l: Initialize LED Task
+
+    par
+        loop Every `IMU_PERIOD_MS`
+            Note over i: Capture IMU Data
+            i ->> d: Send IMU data to Data Task
+            Note over d: Filter data & estimate state
+            d ->> l: Update LEDs
+        end
+    and
+        loop Every minute
+            Note over m: Monitor System Memory
+        end
+    end
+```
 
 Pins and general settings for each peripheral can be found in its respective driver header, e.g. `led_driver.h`, or `imu_driver.h`, or `filters.h` to change the parameters for the underlying filters (low pass, Mahoney) and their data buffers.
 
